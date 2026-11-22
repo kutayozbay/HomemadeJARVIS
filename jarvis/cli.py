@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
-from .config import Config
+from .config import Config, load_dotenv
 from .core import Jarvis
 
 
@@ -27,6 +28,31 @@ def _ask(j: Jarvis, text: str, force: str | None) -> None:
     print(f"[{a.tier} - {a.latency_ms / 1000:.1f}s]" + (f" {a.note}" if a.note else ""), file=sys.stderr)
 
 
+def _telegram(whoami_only: bool) -> int:
+    from . import telegram
+
+    token = os.environ.get("JARVIS_TELEGRAM_TOKEN", "")
+    if not token:
+        print("Set JARVIS_TELEGRAM_TOKEN (in ~/.jarvis/.env or the environment).", file=sys.stderr)
+        return 2
+    try:
+        if whoami_only:
+            telegram.whoami(token, once=True)
+            return 0
+        owner = os.environ.get("JARVIS_TELEGRAM_USER_ID", "")
+        if not owner.isdigit():
+            print("Set JARVIS_TELEGRAM_USER_ID to your numeric id (find it with --telegram-whoami).", file=sys.stderr)
+            return 2
+        j = Jarvis(Config())
+        try:
+            telegram.TelegramBot(token, int(owner), j).run()
+        finally:
+            j.log.close()
+    except KeyboardInterrupt:
+        print()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="replace")
@@ -35,8 +61,14 @@ def main(argv: list[str] | None = None) -> int:
     tier = p.add_mutually_exclusive_group()
     tier.add_argument("--local", action="store_true", help="force the local model")
     tier.add_argument("--claude", action="store_true", help="force Claude")
+    p.add_argument("--telegram", action="store_true", help="run the Telegram bot")
+    p.add_argument("--telegram-whoami", action="store_true", help="print your Telegram user id, then exit")
     args = p.parse_args(argv)
     force = "local" if args.local else "claude" if args.claude else None
+
+    load_dotenv()
+    if args.telegram_whoami or args.telegram:
+        return _telegram(args.telegram_whoami)
 
     j = Jarvis(Config())
     try:

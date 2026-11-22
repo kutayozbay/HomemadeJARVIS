@@ -8,6 +8,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+def load_dotenv(path: Path | None = None) -> None:
+    """Load KEY=VALUE lines from ~/.jarvis/.env (outside the repo). Real environment variables win."""
+    path = path or Path(os.environ.get("JARVIS_HOME", str(Path.home() / ".jarvis"))) / ".env"
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
 def find_claude_cli() -> str | None:
     """Locate the Claude Code executable: env override, PATH, then the desktop app's bundled copy."""
     explicit = os.environ.get("JARVIS_CLAUDE_CLI")
