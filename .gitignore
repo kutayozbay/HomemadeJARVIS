@@ -1,0 +1,21 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+config.local.py
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# local-only notes and artifacts
+docs/PLAN.md
+*.ipynb
+*.wav
+*.db
+*.sqlite
