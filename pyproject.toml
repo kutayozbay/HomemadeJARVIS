@@ -1,0 +1,22 @@
+[project]
+name = "jarvis"
+version = "0.3.0"
+description = "Local-first personal assistant: rules, then a local LLM, then Claude."
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+jarvis = "jarvis.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["jarvis"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

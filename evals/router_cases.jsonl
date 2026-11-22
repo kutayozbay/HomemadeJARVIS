@@ -1,0 +1,24 @@
+{"text": "hello, how are you?", "expect": "local"}
+{"text": "merhaba, naber?", "expect": "local"}
+{"text": "what is the capital of Japan?", "expect": "local"}
+{"text": "what is 17 * 23?", "expect": "local"}
+{"text": "translate 'good morning' to French", "expect": "local"}
+{"text": "Türkçe'ye çevir: The meeting is at noon.", "expect": "local"}
+{"text": "define the word 'ephemeral' in one sentence", "expect": "local"}
+{"text": "rewrite this to sound more polite: send me the file now", "expect": "local"}
+{"text": "summarise in one line: The cat sat on the mat all afternoon and watched the rain.", "expect": "local"}
+{"text": "tell me a short joke", "expect": "local"}
+{"text": "how many days are in a leap year?", "expect": "local"}
+{"text": "give me a synonym for 'happy'", "expect": "local"}
+{"text": "write a Python function that merges overlapping intervals and add unit tests", "expect": "claude"}
+{"text": "my FastAPI endpoint returns 500 only under load, how do I debug it?", "expect": "claude"}
+{"text": "prove that the square root of 2 is irrational", "expect": "claude"}
+{"text": "design a database schema for a multi-tenant SaaS with row-level security", "expect": "claude"}
+{"text": "plan a 12 week curriculum to learn convex optimization", "expect": "claude"}
+{"text": "compare the trade-offs of Postgres vs SQLite for an event log and recommend one", "expect": "claude"}
+{"text": "bu backtest neden overfit olmuş olabilir, walk-forward nasıl kurulur?", "expect": "claude"}
+{"text": "refactor this class hierarchy to use composition and explain each step", "expect": "claude"}
+{"text": "write a detailed 800 word essay on the causes of the French Revolution", "expect": "claude"}
+{"text": "derive the gradient of softmax cross-entropy with respect to the logits", "expect": "claude"}
+{"text": "review my architecture for a two-plane security model and find holes", "expect": "claude"}
+{"text": "bunu yap", "expect": "claude"}

@@ -2,7 +2,7 @@
 
 > A personal assistant platform that runs **local-first**: small jobs stay on my own machine, only hard problems go to a frontier model.
 
-**Status:** v3 is being rebuilt from scratch. The first version was a weekend voice toy; this repo is its successor.
+**Status:** v3 core works (rules → local model → Claude, with an episode log). Voice, messaging and capability packs come next. The first version was a weekend voice toy; this repo is its successor.
 
 ---
 
@@ -34,15 +34,39 @@ The local model never decides *what to do* freely. It only returns a constrained
 
 Read more in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Quick start
+
+```powershell
+winget install Ollama.Ollama
+ollama pull qwen3:4b-instruct            # ~2.5 GB, runs on an 8 GB GPU
+uv sync
+
+uv run jarvis "what is the capital of Italy?"     # answered locally
+uv run jarvis "/time"                              # tier 1, no model at all
+uv run jarvis --claude "design a database schema"  # force Claude
+uv run jarvis                                      # interactive loop
+uv run jarvis /stats                               # per-tier counts, latency, cost
+uv run pytest                                      # 15 tests, no GPU or network needed
+```
+
+**Claude tier:** Jarvis calls the Claude Code CLI in print mode with all tools disabled. Sign in once with `claude auth login` (set `JARVIS_CLAUDE_CLI` if the executable is not on `PATH`). If Claude or Ollama is unavailable, Jarvis falls back to the other model and says so.
+
+Settings are environment variables: `JARVIS_LOCAL_MODEL`, `JARVIS_ESCALATE_BELOW` (default `0.7`), `JARVIS_KEEP_ALIVE`, `JARVIS_CLAUDE_MODEL`, `JARVIS_HOME` (where the SQLite episode log lives, default `~/.jarvis`).
+
+## Does the router work?
+
+`evals/router_cases.jsonl` holds 24 labelled requests (English and Turkish). On `qwen3:4b-instruct` the router scores **23/24 with no hard request kept local**; the one miss sends an easy rewrite to Claude, which only costs quota. That set is small and was written by the author, so treat it as a regression check, not a benchmark. Run it with `uv run python evals/run_router_eval.py`.
+
 ## Repository layout
 
 ```
 jarvis/
+├── jarvis/                   core: config, rules, router, backends, episode log, CLI
+├── tests/                    unit tests with fake backends
+├── evals/                    labelled router cases and the eval runner
 ├── docs/ARCHITECTURE.md      design and security model
 └── legacy/v2-gemini-voice/   the original voice prototype (Gemini + speech recognition)
 ```
-
-The v3 core (CLI, router, episode log) will land in `core/`.
 
 ## Run the legacy voice prototype
 
