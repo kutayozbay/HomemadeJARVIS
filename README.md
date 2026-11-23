@@ -46,7 +46,7 @@ uv run jarvis "/time"                              # tier 1, no model at all
 uv run jarvis --claude "design a database schema"  # force Claude
 uv run jarvis                                      # interactive loop
 uv run jarvis /stats                               # per-tier counts, latency, cost
-uv run pytest                                      # 40 tests, no GPU or network needed
+uv run pytest                                      # 44 tests, no GPU or network needed
 ```
 
 **Claude tier:** Jarvis calls the Claude Code CLI in print mode with all tools disabled. Sign in once with `claude auth login` (set `JARVIS_CLAUDE_CLI` if the executable is not on `PATH`). If Claude or Ollama is unavailable, Jarvis falls back to the other model and says so.
@@ -69,6 +69,8 @@ Talk to Jarvis from your phone. The bot answers **only you**, in a private chat;
 4. `uv run jarvis --telegram` and start chatting. `!claude ...` and `!local ...` force a model; `/stats` shows usage.
 
 The machine running the bot must be on. The bot polls Telegram outbound, so no port is opened.
+
+**Daily brief:** while the bot runs it sends the radar brief at `07:30` local time (once a day; if the bot starts late it still sends within 4 hours; "nothing new" is never pushed). Change it with `JARVIS_BRIEF_TIME=08:15` or turn it off with `JARVIS_BRIEF_TIME=off`.
 
 ## Radar (first capability pack)
 

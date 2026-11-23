@@ -12,6 +12,10 @@ CREATE TABLE IF NOT EXISTS radar_topics (
     name TEXT NOT NULL UNIQUE,
     keywords TEXT NOT NULL DEFAULT ''          -- comma separated, lower case
 );
+CREATE TABLE IF NOT EXISTS radar_state (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS radar_sources (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     topic_id INTEGER NOT NULL REFERENCES radar_topics(id) ON DELETE CASCADE,
@@ -105,6 +109,15 @@ class RadarStore:
     def mark_briefed(self, item_ids: list[int], now: float | None = None) -> None:
         self._db.executemany("UPDATE radar_items SET briefed_at = ? WHERE id = ?",
                              [(now or time.time(), i) for i in item_ids])
+        self._db.commit()
+
+    def get_state(self, key: str) -> str | None:
+        row = self._db.execute("SELECT value FROM radar_state WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else None
+
+    def set_state(self, key: str, value: str) -> None:
+        self._db.execute("INSERT INTO radar_state (key, value) VALUES (?, ?) "
+                         "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, value))
         self._db.commit()
 
     def close(self) -> None:

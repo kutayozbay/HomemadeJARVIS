@@ -49,6 +49,8 @@ class Config:
     escalate_below: float = field(default_factory=lambda: float(os.environ.get("JARVIS_ESCALATE_BELOW", "0.7")))
     claude_model: str | None = field(default_factory=lambda: os.environ.get("JARVIS_CLAUDE_MODEL") or None)
     home: Path = field(default_factory=lambda: Path(os.environ.get("JARVIS_HOME", str(Path.home() / ".jarvis"))))
+    # Daily radar brief on Telegram, local time "HH:MM". Set JARVIS_BRIEF_TIME=off to disable.
+    brief_time: str = field(default_factory=lambda: os.environ.get("JARVIS_BRIEF_TIME", "07:30"))
     local_timeout: float = 120.0
     claude_timeout: float = 300.0
 

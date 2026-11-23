@@ -122,3 +122,53 @@ def test_dotenv_loads_without_overriding(tmp_path, monkeypatch):
     assert os.environ["JARVIS_T1"] == "abc"
     assert os.environ["JARVIS_T2"] == "from-environment"
     monkeypatch.delenv("JARVIS_T1", raising=False)
+
+
+# ---- daily radar brief ----
+
+from datetime import datetime  # noqa: E402
+
+
+def at(h, m=0, day=23):
+    return datetime(2026, 11, day, h, m)
+
+
+@pytest.fixture
+def briefing(setup, monkeypatch):
+    bot, sent = setup
+    bot._brief = lambda: "Radar: 2 item(s)\n1. [ML] Something"
+    return bot, sent
+
+
+def test_brief_sent_once_per_day_at_the_scheduled_time(briefing):
+    bot, sent = briefing
+    assert bot.maybe_send_daily_brief(at(7, 29)) is False        # too early
+    assert bot.maybe_send_daily_brief(at(7, 30)) is True
+    assert bot.maybe_send_daily_brief(at(7, 31)) is False        # already sent today
+    assert texts(sent) == ["Radar: 2 item(s)\n1. [ML] Something"]
+    assert sent[-1][1]["chat_id"] == OWNER
+    assert bot.maybe_send_daily_brief(at(7, 30, day=24)) is True  # next day works
+
+
+def test_late_start_catches_up_only_within_four_hours(briefing):
+    bot, sent = briefing
+    assert bot.maybe_send_daily_brief(at(0, 5)) is False
+    assert bot.maybe_send_daily_brief(at(11, 45)) is False
+    assert bot.maybe_send_daily_brief(at(9, 10)) is True
+
+
+def test_quiet_briefs_are_not_pushed(setup):
+    bot, sent = setup
+    bot._brief = lambda: "Radar: nothing new."
+    assert bot.maybe_send_daily_brief(at(7, 40)) is False
+    assert sent == []
+    bot._brief = lambda: "Radar: 1 item(s)"
+    assert bot.maybe_send_daily_brief(at(7, 41)) is False        # day already consumed, no retry loop
+
+
+def test_brief_can_be_disabled(tmp_path):
+    cfg = Config(home=tmp_path, brief_time="off")
+    jarvis = Jarvis(cfg, ollama=FakeOllama(), claude=FakeClaude(), log=EpisodeLog(cfg.db_path))
+    bot = TelegramBot("TOKEN", OWNER, jarvis, lambda m, p: {"result": []})
+    bot._brief = lambda: "Radar: 1 item(s)"
+    assert bot.maybe_send_daily_brief(at(7, 40)) is False

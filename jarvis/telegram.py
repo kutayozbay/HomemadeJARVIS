@@ -11,6 +11,7 @@ import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
+from datetime import datetime, timedelta
 
 from .core import Jarvis
 
@@ -83,25 +84,61 @@ class TelegramBot:
             self.send(chat["id"], "\n".join(lines) or "No requests logged yet.")
             return
         if text == "/brief":
-            from .backends import Ollama
-            from .radar.brief import build_brief
-            from .radar.store import RadarStore
-
-            store = RadarStore(self.jarvis.cfg.db_path)
-            try:
-                self.send(chat["id"], build_brief(store, Ollama(self.jarvis.cfg)))
-            finally:
-                store.close()
+            self.send(chat["id"], self._brief())
             return
         question, force = parse_force(text)
         answer = self.jarvis.ask(question, force=force)
         self.send(chat["id"], answer.text)
+
+    def _brief(self) -> str:
+        from .backends import Ollama
+        from .radar.brief import build_brief
+        from .radar.store import RadarStore
+
+        store = RadarStore(self.jarvis.cfg.db_path)
+        try:
+            return build_brief(store, Ollama(self.jarvis.cfg))
+        finally:
+            store.close()
+
+    def maybe_send_daily_brief(self, now: datetime | None = None) -> bool:
+        """Send the radar brief once a day at the configured time. Returns True if a message was sent.
+
+        If the bot starts late it still sends, but only within 4 hours of the scheduled time, so a
+        laptop that wakes at midnight does not push a brief. Quiet briefs ("nothing new") are skipped.
+        """
+        from .radar.store import RadarStore
+
+        now = now or datetime.now()
+        try:
+            at = datetime.strptime(self.jarvis.cfg.brief_time, "%H:%M").time()
+        except ValueError:  # "off" or malformed: feature disabled
+            return False
+        due = datetime.combine(now.date(), at)
+        if not (due <= now < due + timedelta(hours=4)):
+            return False
+        store = RadarStore(self.jarvis.cfg.db_path)
+        try:
+            if store.get_state("last_brief_date") == now.date().isoformat():
+                return False
+            store.set_state("last_brief_date", now.date().isoformat())  # mark first: never retry-loop on errors
+        finally:
+            store.close()
+        text = self._brief()
+        if text.startswith(("Radar: nothing new", "No topics yet")):
+            return False
+        self.send(self.owner_id, text)  # a private chat id equals the user id
+        return True
 
     def run(self) -> None:
         offset = 0
         backoff = 1
         print("Telegram bot running. Ctrl+C to stop.", file=sys.stderr)
         while True:
+            try:
+                self.maybe_send_daily_brief()
+            except Exception as e:  # the daily brief must never stop the bot
+                print(f"Daily brief failed: {type(e).__name__}: {e}", file=sys.stderr)
             try:
                 data = self._api("getUpdates", {"offset": offset, "timeout": 50, "allowed_updates": ["message"]})
                 backoff = 1
