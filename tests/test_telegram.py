@@ -172,3 +172,29 @@ def test_brief_can_be_disabled(tmp_path):
     bot = TelegramBot("TOKEN", OWNER, jarvis, lambda m, p: {"result": []})
     bot._brief = lambda: "Radar: 1 item(s)"
     assert bot.maybe_send_daily_brief(at(7, 40)) is False
+
+
+# ---- CLI guards ----
+
+def test_cli_rejects_a_pasted_command_instead_of_a_token(monkeypatch, capsys):
+    from jarvis import cli
+
+    monkeypatch.setenv("JARVIS_TELEGRAM_TOKEN", "cd C:/PythonProjects/jarvis; uv run jarvis --telegram-whoami")
+    assert cli._telegram(True) == 2
+    assert "does not look like a BotFather token" in capsys.readouterr().err
+
+
+def test_cli_reports_a_rejected_token_cleanly(monkeypatch, capsys):
+    import io
+    import urllib.error
+
+    from jarvis import cli, telegram
+
+    monkeypatch.setenv("JARVIS_TELEGRAM_TOKEN", "123456789:" + "A" * 35)
+
+    def boom(token, **kw):
+        raise urllib.error.HTTPError("u", 401, "Unauthorized", {}, io.BytesIO())
+
+    monkeypatch.setattr(telegram, "whoami", boom)
+    assert cli._telegram(True) == 2
+    assert "rejected the token (HTTP 401)" in capsys.readouterr().err

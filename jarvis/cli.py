@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
+import urllib.error
 
 from .config import Config, load_dotenv
 from .core import Jarvis
@@ -35,6 +37,10 @@ def _telegram(whoami_only: bool) -> int:
     if not token:
         print("Set JARVIS_TELEGRAM_TOKEN (in ~/.jarvis/.env or the environment).", file=sys.stderr)
         return 2
+    if not re.fullmatch(r"\d{6,12}:[A-Za-z0-9_-]{30,}", token):
+        print("JARVIS_TELEGRAM_TOKEN does not look like a BotFather token (digits, a colon, then letters).\n"
+              "Re-run the token command and paste only the token at the 'Bot token:' prompt.", file=sys.stderr)
+        return 2
     try:
         if whoami_only:
             telegram.whoami(token, once=True)
@@ -50,6 +56,13 @@ def _telegram(whoami_only: bool) -> int:
             j.log.close()
     except KeyboardInterrupt:
         print()
+    except urllib.error.HTTPError as e:
+        print("Telegram rejected the token (HTTP %d). Check it in BotFather and store it again." % e.code,
+              file=sys.stderr)
+        return 2
+    except (urllib.error.URLError, TimeoutError) as e:
+        print(f"Could not reach Telegram: {type(e).__name__}. Check your connection.", file=sys.stderr)
+        return 2
     return 0
 
 
