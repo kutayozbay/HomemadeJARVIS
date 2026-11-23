@@ -56,6 +56,12 @@ def _telegram(whoami_only: bool) -> int:
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="replace")
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == "radar":  # `radar` is a reserved first word
+        from .radar.cli import main as radar_main
+
+        load_dotenv()
+        return radar_main(argv[1:])
     p = argparse.ArgumentParser(prog="jarvis", description="Local-first personal assistant.")
     p.add_argument("text", nargs="*", help="what to ask; omit for an interactive loop")
     tier = p.add_mutually_exclusive_group()

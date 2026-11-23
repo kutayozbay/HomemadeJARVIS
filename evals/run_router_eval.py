@@ -20,6 +20,7 @@ CASES = Path(__file__).with_name("router_cases.jsonl")
 
 
 def main() -> int:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # Turkish cases on a cp1252 console
     cfg = Config()
     ollama = Ollama(cfg)
     cases = [json.loads(line) for line in CASES.read_text(encoding="utf-8").splitlines() if line.strip()]

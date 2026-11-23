@@ -42,7 +42,8 @@ def find_claude_cli() -> str | None:
 
 @dataclass(frozen=True)
 class Config:
-    ollama_url: str = field(default_factory=lambda: os.environ.get("JARVIS_OLLAMA_URL", "http://localhost:11434"))
+    # 127.0.0.1, not "localhost": on Windows, Python tries IPv6 first and waits ~2 s for it to fail on every request.
+    ollama_url: str = field(default_factory=lambda: os.environ.get("JARVIS_OLLAMA_URL", "http://127.0.0.1:11434"))
     local_model: str = field(default_factory=lambda: os.environ.get("JARVIS_LOCAL_MODEL", "qwen3:4b-instruct"))
     keep_alive: str = field(default_factory=lambda: os.environ.get("JARVIS_KEEP_ALIVE", "3m"))
     escalate_below: float = field(default_factory=lambda: float(os.environ.get("JARVIS_ESCALATE_BELOW", "0.7")))

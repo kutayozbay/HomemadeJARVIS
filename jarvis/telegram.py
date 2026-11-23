@@ -82,6 +82,17 @@ class TelegramBot:
             lines = [f"{r['tier']}: {r['count']} req, {r['avg_ms']} ms avg, ${r['cost_usd']}" for r in rows]
             self.send(chat["id"], "\n".join(lines) or "No requests logged yet.")
             return
+        if text == "/brief":
+            from .backends import Ollama
+            from .radar.brief import build_brief
+            from .radar.store import RadarStore
+
+            store = RadarStore(self.jarvis.cfg.db_path)
+            try:
+                self.send(chat["id"], build_brief(store, Ollama(self.jarvis.cfg)))
+            finally:
+                store.close()
+            return
         question, force = parse_force(text)
         answer = self.jarvis.ask(question, force=force)
         self.send(chat["id"], answer.text)

@@ -46,7 +46,7 @@ uv run jarvis "/time"                              # tier 1, no model at all
 uv run jarvis --claude "design a database schema"  # force Claude
 uv run jarvis                                      # interactive loop
 uv run jarvis /stats                               # per-tier counts, latency, cost
-uv run pytest                                      # 25 tests, no GPU or network needed
+uv run pytest                                      # 40 tests, no GPU or network needed
 ```
 
 **Claude tier:** Jarvis calls the Claude Code CLI in print mode with all tools disabled. Sign in once with `claude auth login` (set `JARVIS_CLAUDE_CLI` if the executable is not on `PATH`). If Claude or Ollama is unavailable, Jarvis falls back to the other model and says so.
@@ -70,15 +70,54 @@ Talk to Jarvis from your phone. The bot answers **only you**, in a private chat;
 
 The machine running the bot must be on. The bot polls Telegram outbound, so no port is opened.
 
+## Radar (first capability pack)
+
+Tracks topics you care about and prints a short, deduplicated brief.
+
+```powershell
+uv run jarvis radar add "Machine Learning" --kw "llm,transformer,optimizer" --hn "machine learning" --arxiv "optimizer"
+uv run jarvis radar add "Formula 1" --kw "f1,formula 1" --rss https://example.com/feed.xml
+uv run jarvis radar topics
+uv run jarvis radar brief -n 5        # or send /brief to the Telegram bot
+```
+
+Sources: RSS/Atom feeds, Hacker News search, arXiv search. Items are deduplicated by canonical URL and by near-identical titles, ranked by keyword hits and a 24 hour recency half-life, and never repeated in a later brief.
+
+Web text is **untrusted**. It is summarised by the local model with no tools, inside an `<untrusted_data>` fence, forced into a one-field JSON schema, then sanitised and truncated. Feeds with DTDs or entity declarations are rejected. Radar runs in-process for now; packaging packs as MCP servers comes later.
+
+## Run it at login
+
+```powershell
+.\scripts\install-autostart.ps1            # registers a per-user task that starts the Telegram bot at logon
+.\scripts\install-autostart.ps1 -Status
+.\scripts\install-autostart.ps1 -Remove
+```
+
+The script refuses to install until the token and user id are in `~/.jarvis/.env`. It does not change power settings.
+
+**Keeping the laptop awake** (optional, run it yourself): to keep the bot reachable with the lid closed on AC power, in an elevated PowerShell:
+
+```powershell
+powercfg /change standby-timeout-ac 0
+powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0
+powercfg /setactive SCHEME_CURRENT
+```
+
+Undo by setting the lid action back to `1` (sleep). A closed lid still produces heat, so keep the vents free.
+
 ## Does the router work?
 
-`evals/router_cases.jsonl` holds 24 labelled requests (English and Turkish). On `qwen3:4b-instruct` the router scores **23/24 with no hard request kept local**; the one miss sends an easy rewrite to Claude, which only costs quota. That set is small and was written by the author, so treat it as a regression check, not a benchmark. Run it with `uv run python evals/run_router_eval.py`.
+`evals/router_cases.jsonl` holds 24 labelled requests (English and Turkish). On `qwen3:4b-instruct` the router scores **23/24 with no hard request kept local**, at about **250 ms per decision**; the one miss sends an easy rewrite to Claude, which only costs quota. That set is small and was written by the author, so treat it as a regression check, not a benchmark. Run it with `uv run python evals/run_router_eval.py`.
+
+(Performance note: use `127.0.0.1`, not `localhost`, for Ollama on Windows. Python tries IPv6 first and every request paid a ~2 s penalty.)
 
 ## Repository layout
 
 ```
 jarvis/
 ├── jarvis/                   core: config, rules, router, backends, episode log, CLI, Telegram
+│   └── radar/                first pack: topics, feeds, dedupe, ranking, brief
+├── scripts/                  install-autostart.ps1
 ├── tests/                    unit tests with fake backends
 ├── evals/                    labelled router cases and the eval runner
 ├── docs/ARCHITECTURE.md      design and security model

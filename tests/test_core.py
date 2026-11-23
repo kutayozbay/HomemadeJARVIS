@@ -154,3 +154,8 @@ def test_claude_cli_parses_a_successful_reply(monkeypatch, tmp_path):
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, out, ""))
     r = backends.ClaudeCLI(Config(home=tmp_path)).ask("hi")
     assert (r.text, r.tokens_in, r.tokens_out, r.cost_usd) == ("hello", 5, 2, 0.002)
+
+
+def test_default_ollama_url_avoids_slow_localhost_lookup(monkeypatch):
+    monkeypatch.delenv("JARVIS_OLLAMA_URL", raising=False)
+    assert "localhost" not in Config().ollama_url
