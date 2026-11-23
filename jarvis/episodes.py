@@ -52,6 +52,13 @@ class EpisodeLog:
         )
         self._db.commit()
 
+    def recent_prompts(self, since: float, limit: int = 60) -> list[str]:
+        """What you asked the models since `since` (newest first). Rules, tools and actions are left out."""
+        rows = self._db.execute(
+            "SELECT prompt FROM episodes WHERE ts >= ? AND tier IN ('local', 'claude') ORDER BY ts DESC LIMIT ?",
+            (since, limit)).fetchall()
+        return [r[0] for r in rows]
+
     def stats(self) -> list[dict]:
         rows = self._db.execute(
             "SELECT tier, COUNT(*), CAST(AVG(latency_ms) AS INT), COALESCE(SUM(cost_usd),0),"

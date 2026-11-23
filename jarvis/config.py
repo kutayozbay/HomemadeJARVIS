@@ -69,6 +69,8 @@ class Config:
     tts_voice: str = field(default_factory=lambda: os.environ.get("JARVIS_TTS_VOICE", "bm_george+bm_lewis"))
     tts_speed: float = field(default_factory=lambda: float(os.environ.get("JARVIS_TTS_SPEED", "1.1")))
     mic_threshold: float = field(default_factory=lambda: float(os.environ.get("JARVIS_MIC_THRESHOLD", "0")))  # 0 = auto
+    # FRIDAY may open sites/apps and control music (see jarvis/actions). JARVIS_ACTIONS=off disables all of it.
+    actions: bool = field(default_factory=lambda: os.environ.get("JARVIS_ACTIONS", "on").lower() != "off")
     local_timeout: float = 120.0
     claude_timeout: float = 300.0
 

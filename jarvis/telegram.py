@@ -86,6 +86,9 @@ class TelegramBot:
         if text == "/brief":
             self.send(chat["id"], self._brief())
             return
+        if text == "/interests" or text.startswith(("/forget ", "/follow ")):
+            self.send(chat["id"], self._interests(text))
+            return
         question, force = parse_force(text)
         answer = self.jarvis.ask(question, force=force)
         self.send(chat["id"], answer.text)
@@ -98,6 +101,43 @@ class TelegramBot:
         store = RadarStore(self.jarvis.cfg.db_path)
         try:
             return build_brief(store, Ollama(self.jarvis.cfg))
+        finally:
+            store.close()
+
+    def _interests(self, text: str) -> str:
+        from .radar.interests import news_sources
+        from .radar.store import RadarStore
+
+        store = RadarStore(self.jarvis.cfg.db_path)
+        try:
+            command, _, name = text.partition(" ")
+            name = name.strip()[:40]
+            if command == "/forget":
+                return f"Forgot {name}." if store.forget(name) else f"I was not following '{name}'."
+            if command == "/follow":
+                if not name:
+                    return "Say what to follow, e.g. /follow Formula 1"
+                topic_id = store.add_topic(name, [name.lower()])
+                for kind, value in news_sources(name):
+                    store.add_source(topic_id, kind, value)
+                return f"Following {name} (it never expires)."
+            topics = store.topics()
+            if not topics:
+                return "No interests yet. Ask me things for a few days, or /follow <topic>."
+            return "On your radar:\n" + "\n".join(
+                f"- {t.name}" + ("" if t.origin == "manual" else f" (learned, x{t.strength:g})") for t in topics
+            ) + "\n/forget <topic> removes one."
+        finally:
+            store.close()
+
+    def _learn(self) -> list[str]:
+        """Update the learned interests from the last week of questions (one Claude call, once a day)."""
+        from .radar.interests import learn_from_log
+        from .radar.store import RadarStore
+
+        store = RadarStore(self.jarvis.cfg.db_path)
+        try:
+            return learn_from_log(store, self.jarvis.log, self.jarvis.claude)
         finally:
             store.close()
 
@@ -124,9 +164,16 @@ class TelegramBot:
             store.set_state("last_brief_date", now.date().isoformat())  # mark first: never retry-loop on errors
         finally:
             store.close()
+        try:
+            new_topics = self._learn()
+        except Exception as e:  # learning is a bonus: it must never block the brief
+            print(f"Interest learning failed: {type(e).__name__}: {e}", file=sys.stderr)
+            new_topics = []
         text = self._brief()
         if text.startswith(("Radar: nothing new", "No topics yet")):
             return False
+        if new_topics:
+            text += "\n\nNew on your radar: " + ", ".join(new_topics) + " (/forget <topic> to drop one)"
         self.send(self.owner_id, text)  # a private chat id equals the user id
         return True
 

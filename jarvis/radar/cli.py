@@ -22,6 +22,9 @@ def main(argv: list[str]) -> int:
     add.add_argument("--arxiv", action="append", default=[], metavar="QUERY", help="arXiv search (repeatable)")
 
     sub.add_parser("topics", help="list topics and sources")
+    sub.add_parser("learn", help="learn topics from your recent questions now (uses Claude)")
+    forget = sub.add_parser("forget", help="stop following a topic")
+    forget.add_argument("name")
     brief = sub.add_parser("brief", help="fetch sources and print the top items")
     brief.add_argument("-n", type=int, default=5, help="maximum items (default 5)")
     brief.add_argument("--no-summary", action="store_true", help="skip the local summaries")
@@ -37,9 +40,23 @@ def main(argv: list[str]) -> int:
                 for v in values:
                     store.add_source(tid, kind, v)
             print(f"Topic '{args.name}' saved with {len(store.sources(tid))} source(s).")
+        elif args.cmd == "forget":
+            print(f"Forgot {args.name}." if store.forget(args.name) else f"Not following '{args.name}'.")
+        elif args.cmd == "learn":
+            from ..backends import ClaudeCLI
+            from ..episodes import EpisodeLog
+            from .interests import learn_from_log
+
+            log = EpisodeLog(cfg.db_path)
+            try:
+                new = learn_from_log(store, log, ClaudeCLI(cfg))
+            finally:
+                log.close()
+            print("New topics: " + ", ".join(new) if new else "No new topics (not enough questions, or nothing new).")
         elif args.cmd == "topics":
             for t in store.topics():
-                print(f"{t.name}  (keywords: {', '.join(t.keywords) or '-'})")
+                tag = "" if t.origin == "manual" else f" [learned x{t.strength:g}]"
+                print(f"{t.name}{tag}  (keywords: {', '.join(t.keywords) or '-'})")
                 for kind, value in store.sources(t.id):
                     print(f"    {kind}: {value}")
         else:

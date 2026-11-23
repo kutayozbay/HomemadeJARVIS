@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
-from . import rules, tools
+from . import actions, rules, tools
 from .backends import SYSTEM_PROMPT, BackendError, ClaudeCLI, Ollama, Reply
 from .config import Config
 from .episodes import Episode, EpisodeLog
@@ -58,9 +58,12 @@ class Jarvis:
         out = ""
 
         hit = rules.match(text) if force is None else None
-        tool_hit = tools.match(text, self.cfg) if force is None and hit is None else None
+        act_hit = actions.match(text) if force is None and hit is None and self.cfg.actions else None
+        tool_hit = tools.match(text, self.cfg) if force is None and hit is None and act_hit is None else None
         if hit is not None:
             tier, out = "rules", hit
+        elif act_hit is not None:
+            tier, out = "action", act_hit
         elif tool_hit is not None:
             tier, out = "tool", tool_hit
         else:
@@ -87,6 +90,14 @@ class Jarvis:
                     tier, out, note = "error", f"Both models failed: {e2}", f"{note}; {e2}"
             if reply is not None:
                 out = reply.text
+                if tier == "claude" and self.cfg.actions:
+                    # Claude may ask for actions; only the user's own words reached it, never web text.
+                    out, planned = actions.extract(out)
+                    results = [actions.perform(a) for a in planned]
+                    if results:
+                        out = out or " ".join(results)
+                        note = "; ".join(filter(None, [note, "actions: " + ", ".join(
+                            str(a.get("do")) for a in planned)]))
 
         if tier != "error" and out:
             self._remember(text, out)

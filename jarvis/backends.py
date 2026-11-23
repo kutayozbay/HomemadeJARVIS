@@ -80,8 +80,13 @@ class ClaudeCLI:
         exe = find_claude_cli()
         if not exe:
             raise BackendError("Claude CLI not found. Set JARVIS_CLAUDE_CLI to the claude executable.")
+        system = SYSTEM_PROMPT
+        if self.cfg.actions:
+            from .actions import PROMPT  # imported here: the actions package imports nothing from backends
+
+            system += PROMPT
         cmd = [exe, "-p", prompt, "--output-format", "json", "--tools", "",
-               "--system-prompt", SYSTEM_PROMPT, "--no-session-persistence",
+               "--system-prompt", system, "--no-session-persistence",
                "--disable-slash-commands", "--setting-sources", ""]
         chosen = model or self.cfg.claude_model
         if chosen:

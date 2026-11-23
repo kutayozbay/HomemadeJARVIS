@@ -15,6 +15,12 @@ voice = [
     "numpy>=2.5.5",
     "sounddevice>=0.5.6",
 ]
+control = [
+    "winrt-runtime>=4.2.0",
+    "winrt-windows-foundation>=4!10.0.28000.2957",
+    "winrt-windows-foundation-collections>=4!10.0.28000.2957",
+    "winrt-windows-media-control>=4!10.0.28000.2957",
+]
 
 [dependency-groups]
 dev = ["pytest>=8"]

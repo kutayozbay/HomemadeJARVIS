@@ -99,9 +99,18 @@ uv run jarvis --voice         # say "Friday, what time is it?"
 - **Tools** (tier between rules and models): `weather` (Open-Meteo, no account) and a time-zone rule. Nothing about you is configured or stored: "what's the weather" asks the Windows location service where you are right now (kept in memory for 30 minutes, never written to disk), or say "weather in Ankara tomorrow". Only coordinates (or the city you name) are sent to Open-Meteo. Tools never take instructions from model output.
 - **Debugging voice:** `JARVIS_VOICE_DEBUG=1` also prints what was heard but ignored (for example, no wake word).
 
+## Actions (FRIDAY's hands)
+
+"Pause the music", "next song", "what's playing", "louder", "open YouTube", "open Spotify", "show me pictures of capybaras", "play Daft Punk on Spotify" (also in Turkish: "spotify'ı durdur", "youtube'u aç"). Obvious commands run instantly without a model; open-ended ones ("show me ...") go to Claude, which may end its reply with `ACTION:` lines.
+
+- Music control uses the Windows media session (no account or API key; install with `uv sync --extra control`), so "pause" really pauses, and does nothing if it is already paused.
+- It can only: open http(s) links to public hosts (never `file:`, `localhost`, private addresses or links with passwords), run a Google search, open a fixed list of apps (`jarvis/actions/launcher.py`), search Spotify, and control media. There is no shell, no file access and no typing into other programs.
+- Claude only ever sees what you said, never web pages, so web text cannot make it act. Every action is validated in code, whoever asked for it. `JARVIS_ACTIONS=off` turns all of it off.
+- Actions run on the laptop, also when you message the Telegram bot from your phone.
+
 ## Radar (first capability pack)
 
-Tracks topics you care about and prints a short, deduplicated brief.
+Tracks topics you care about and prints a short, deduplicated brief. **It also learns your interests:** once a day, before the 07:30 brief, the last seven days of what you asked FRIDAY go to Claude, which picks up to five topics you seem to be actively learning (health, money and other private subjects are excluded). Only topic names and keywords are saved, never your questions. New topics get Google News and Hacker News sources automatically, rank higher each time they come up again, and fade after 21 quiet days. In Telegram: `/interests` lists them, `/forget <topic>` drops one, `/follow <topic>` adds one that never expires. From the shell: `jarvis radar learn`, `jarvis radar forget <topic>`.
 
 ```powershell
 uv run jarvis radar add "Machine Learning" --kw "llm,transformer,optimizer" --hn "machine learning" --arxiv "optimizer"

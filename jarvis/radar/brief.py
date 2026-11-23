@@ -42,7 +42,7 @@ def build_brief(store: RadarStore, ollama: Ollama | None, *, limit: int = 5,
         ranked = sorted(store.unbriefed(topic.id, now - WINDOW_HOURS * 3600),
                         key=lambda i: score(i, topic.keywords, now), reverse=True)
         for it in drop_near_duplicates(ranked):
-            candidates.append((score(it, topic.keywords, now), topic, it))
+            candidates.append((score(it, topic.keywords, now) * topic.strength, topic, it))
 
     candidates.sort(key=lambda c: c[0], reverse=True)
     chosen = candidates[:limit]
