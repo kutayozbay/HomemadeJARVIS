@@ -15,12 +15,15 @@ def load_dotenv(path: Path | None = None) -> None:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
         return
+    values: dict[str, str] = {}
     for line in lines:
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, _, value = line.partition("=")
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        values[key.strip()] = value.strip().strip('"').strip("'")  # a repeated key: the last line wins
+    for key, value in values.items():
+        os.environ.setdefault(key, value)
 
 
 def find_claude_cli() -> str | None:

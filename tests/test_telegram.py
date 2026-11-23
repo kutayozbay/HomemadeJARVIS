@@ -198,3 +198,14 @@ def test_cli_reports_a_rejected_token_cleanly(monkeypatch, capsys):
     monkeypatch.setattr(telegram, "whoami", boom)
     assert cli._telegram(True) == 2
     assert "rejected the token (HTTP 401)" in capsys.readouterr().err
+
+
+def test_dotenv_last_duplicate_wins(tmp_path, monkeypatch):
+    import os
+
+    env = tmp_path / ".env"
+    env.write_text("JARVIS_T3=<placeholder>\nJARVIS_T3=12345\n", encoding="utf-8")
+    monkeypatch.delenv("JARVIS_T3", raising=False)
+    load_dotenv(env)
+    assert os.environ["JARVIS_T3"] == "12345"
+    monkeypatch.delenv("JARVIS_T3", raising=False)
