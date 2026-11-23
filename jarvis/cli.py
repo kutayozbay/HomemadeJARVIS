@@ -79,7 +79,7 @@ def _voice(cfg: Config, wake: bool) -> int:
         return 2
     print("Loading speech models ...", file=sys.stderr)
     speaker = tts.Speaker(cfg.model_dir, cfg.tts_voice, cfg.tts_speed)
-    transcriber = stt.Transcriber(cfg.stt_model, cfg.stt_language)
+    transcriber = stt.Transcriber(cfg.stt_model, cfg.stt_languages)
     threshold = cfg.mic_threshold
     if not threshold:
         blocks = audio.mic_blocks()
@@ -94,7 +94,8 @@ def _voice(cfg: Config, wake: bool) -> int:
 
     hint = 'Say "Friday, ..."' if wake else "Just speak"
     print(f"FRIDAY voice ready (speech-to-text on {transcriber.device}, mic threshold {threshold:.3f}). "
-          f'{hint}; say "stop listening" or press Ctrl+C to quit.', file=sys.stderr)
+          f'{hint}; hears {", ".join(cfg.stt_languages)}; say "stop listening" or press Ctrl+C to quit.',
+          file=sys.stderr)
     try:
         loop.VoiceLoop(j, listen, transcriber.transcribe, speaker.speak, wake=wake).run()
     except KeyboardInterrupt:

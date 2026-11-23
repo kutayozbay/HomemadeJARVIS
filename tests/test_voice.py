@@ -88,13 +88,13 @@ class Clock:
         return self.t
 
 
-def make_loop(tmp_path, heard, wake=True):
-    """heard: what the fake transcriber returns for each successive utterance."""
+def make_loop(tmp_path, heard, wake=True, language="en"):
+    """heard: what the fake transcriber returns for each successive utterance (all in `language`)."""
     cfg = Config(home=tmp_path)
     jarvis = Jarvis(cfg, ollama=FakeOllama(), claude=FakeClaude(), log=EpisodeLog(cfg.db_path))
     queue = list(heard)
     spoken, shown, clock = [], [], Clock()
-    loop = VoiceLoop(jarvis, lambda: "audio" if queue else None, lambda _a: queue.pop(0), spoken.append,
+    loop = VoiceLoop(jarvis, lambda: "audio" if queue else None, lambda _a: (queue.pop(0), language), spoken.append,
                      wake=wake, window_s=10, clock=clock, out=shown.append)
     return loop, spoken, shown, clock
 
@@ -103,6 +103,52 @@ def test_strip_wake():
     assert strip_wake("Friday, what time is it?") == (True, "what time is it?")
     assert strip_wake("what time is it") == (False, "what time is it")
     assert strip_wake("Friday") == (True, "")
+
+
+@pytest.mark.parametrize("heard", ["Fri day, saat kaç?", "Fraydey saat kaç?", "Freyday, saat kaç?", "friday saat kaç?"])
+def test_wake_word_survives_whisper_spelling_variants(heard):
+    called, rest = strip_wake(heard)
+    assert called and rest == "saat kaç?"
+
+
+def test_ordinary_words_do_not_wake_it():
+    assert strip_wake("fried dough is nice")[0] is False
+    assert strip_wake("what is friday")[0] is False
+
+
+def test_turkish_speech_gets_a_written_answer_that_is_not_spoken(tmp_path):
+    loop, spoken, shown, _ = make_loop(tmp_path, ["Friday, hava nasıl?"], language="tr")
+    loop.step()
+    assert spoken == []
+    assert any(line.startswith("FRIDAY [local]") for line in shown)
+    assert any("not spoken" in line for line in shown)
+
+
+def test_turkish_stop_phrase_ends_the_loop(tmp_path):
+    loop, spoken, _, _ = make_loop(tmp_path, ["Friday, dinlemeyi bırak"], language="tr")
+    assert loop.step() is False
+
+
+# ---- languages and voices ----
+
+def test_language_is_picked_among_the_allowed_ones_only():
+    from jarvis.voice.stt import pick_language
+
+    probs = [("de", 0.6), ("en", 0.1), ("tr", 0.25)]
+    assert pick_language(probs, ("en", "tr")) == "tr"
+    assert pick_language(probs, ("en",)) == "en"
+    assert pick_language([], ("en", "tr")) == "en"
+
+
+def test_voice_spec_parsing():
+    from jarvis.voice.tts import parse_voice
+
+    assert parse_voice("bm_george") == [("bm_george", 1.0)]
+    assert parse_voice("bm_george+bm_lewis") == [("bm_george", 0.5), ("bm_lewis", 0.5)]
+    mix = dict(parse_voice("bm_george*0.7+bm_lewis*0.3"))
+    assert mix["bm_george"] == pytest.approx(0.7) and mix["bm_lewis"] == pytest.approx(0.3)
+    with pytest.raises(ValueError):
+        parse_voice("+bm_lewis")
 
 
 def test_without_the_wake_word_it_stays_silent(tmp_path):

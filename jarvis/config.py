@@ -54,11 +54,14 @@ class Config:
     home: Path = field(default_factory=lambda: Path(os.environ.get("JARVIS_HOME", str(Path.home() / ".jarvis"))))
     # Daily radar brief on Telegram, local time "HH:MM". Set JARVIS_BRIEF_TIME=off to disable.
     brief_time: str = field(default_factory=lambda: os.environ.get("JARVIS_BRIEF_TIME", "07:30"))
-    # Voice (optional extra). The voice is a stock Kokoro voice; bm_george = calm British male, bf_emma = British female.
+    # Voice (optional extra). Voices are stock Kokoro voices (bm_* British male, bf_* British female), alone or blended.
     stt_model: str = field(default_factory=lambda: os.environ.get("JARVIS_STT_MODEL", "small"))
-    stt_language: str | None = field(default_factory=lambda: os.environ.get("JARVIS_STT_LANG", "en") or None)
-    tts_voice: str = field(default_factory=lambda: os.environ.get("JARVIS_TTS_VOICE", "bm_george"))
-    tts_speed: float = field(default_factory=lambda: float(os.environ.get("JARVIS_TTS_SPEED", "1.0")))
+    # Languages it may hear, first = main one. Each utterance is detected among these, so "en,tr" switches by itself.
+    stt_languages: tuple[str, ...] = field(default_factory=lambda: tuple(
+        x.strip() for x in os.environ.get("JARVIS_STT_LANGS", "en,tr").split(",") if x.strip()))
+    # A voice is a name or a blend: "bm_george+bm_lewis" (50/50) or "bm_george*0.7+bm_lewis*0.3".
+    tts_voice: str = field(default_factory=lambda: os.environ.get("JARVIS_TTS_VOICE", "bm_george+bm_lewis"))
+    tts_speed: float = field(default_factory=lambda: float(os.environ.get("JARVIS_TTS_SPEED", "1.1")))
     mic_threshold: float = field(default_factory=lambda: float(os.environ.get("JARVIS_MIC_THRESHOLD", "0")))  # 0 = auto
     local_timeout: float = 120.0
     claude_timeout: float = 300.0

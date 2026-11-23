@@ -33,12 +33,29 @@ def sentences(text: str) -> list[str]:
     return [s for s in _SENTENCE.split(text) if s.strip()]
 
 
+def parse_voice(spec: str) -> list[tuple[str, float]]:
+    """'bm_george' -> [('bm_george', 1.0)]; 'a+b' -> equal mix; 'a*0.7+b*0.3' -> weighted. Weights sum to 1."""
+    parts = []
+    for item in spec.split("+"):
+        name, _, weight = item.strip().partition("*")
+        if not name:
+            raise ValueError(f"bad voice spec: {spec!r}")
+        parts.append((name, float(weight) if weight else 1.0))
+    total = sum(w for _, w in parts)
+    if total <= 0:
+        raise ValueError(f"bad voice weights: {spec!r}")
+    return [(name, w / total) for name, w in parts]
+
+
 class Speaker:
-    def __init__(self, model_dir: Path, voice: str = "bm_george", speed: float = 1.0, lang: str = "en-gb"):
+    def __init__(self, model_dir: Path, voice: str = "bm_george+bm_lewis", speed: float = 1.1, lang: str = "en-gb"):
         from kokoro_onnx import Kokoro
 
         self._tts = Kokoro(str(model_dir / MODEL_FILE), str(model_dir / VOICES_FILE))
-        self.voice, self.speed, self.lang = voice, speed, lang
+        mix = parse_voice(voice)
+        # A voice is a style vector; a blend is a weighted average of vectors.
+        self.voice = sum(self._tts.get_voice_style(name) * w for name, w in mix)
+        self.speed, self.lang = speed, lang
 
     def speak(self, text: str) -> None:
         """Say the text sentence by sentence so the first words start quickly. Ctrl+C stops playback."""
