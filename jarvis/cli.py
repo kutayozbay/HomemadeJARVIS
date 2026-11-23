@@ -66,6 +66,44 @@ def _telegram(whoami_only: bool) -> int:
     return 0
 
 
+def _voice(cfg: Config, wake: bool) -> int:
+    from .voice import models
+
+    try:
+        from .voice import audio, loop, stt, tts
+    except ImportError:
+        print("Voice extras are not installed. Run: uv sync --extra voice", file=sys.stderr)
+        return 2
+    if models.missing(cfg.model_dir):
+        print("Voice models are missing. Run once: uv run jarvis --voice-setup (about 340 MB).", file=sys.stderr)
+        return 2
+    print("Loading speech models ...", file=sys.stderr)
+    speaker = tts.Speaker(cfg.model_dir, cfg.tts_voice, cfg.tts_speed)
+    transcriber = stt.Transcriber(cfg.stt_model, cfg.stt_language)
+    threshold = cfg.mic_threshold
+    if not threshold:
+        blocks = audio.mic_blocks()
+        try:
+            threshold = audio.calibrate(blocks)
+        finally:
+            blocks.close()  # release the microphone
+    j = Jarvis(cfg)
+
+    def listen():
+        return audio.segment(audio.mic_blocks(), threshold)
+
+    hint = 'Say "Friday, ..."' if wake else "Just speak"
+    print(f"FRIDAY voice ready (speech-to-text on {transcriber.device}, mic threshold {threshold:.3f}). "
+          f'{hint}; say "stop listening" or press Ctrl+C to quit.', file=sys.stderr)
+    try:
+        loop.VoiceLoop(j, listen, transcriber.transcribe, speaker.speak, wake=wake).run()
+    except KeyboardInterrupt:
+        print()
+    finally:
+        j.log.close()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="replace")
@@ -82,10 +120,21 @@ def main(argv: list[str] | None = None) -> int:
     tier.add_argument("--claude", action="store_true", help="force Claude")
     p.add_argument("--telegram", action="store_true", help="run the Telegram bot")
     p.add_argument("--telegram-whoami", action="store_true", help="print your Telegram user id, then exit")
+    p.add_argument("--voice", action="store_true", help="talk to FRIDAY with the microphone; answers are spoken")
+    p.add_argument("--no-wake", action="store_true", help="with --voice: answer everything, no 'Friday' needed")
+    p.add_argument("--voice-setup", action="store_true", help="download the text-to-speech model files (~340 MB)")
     args = p.parse_args(argv)
     force = "local" if args.local else "claude" if args.claude else None
 
     load_dotenv()
+    if args.voice_setup:
+        from .voice import models
+
+        models.download(Config().model_dir)
+        print("Voice models ready.", file=sys.stderr)
+        return 0
+    if args.voice:
+        return _voice(Config(), wake=not args.no_wake)
     if args.telegram_whoami or args.telegram:
         return _telegram(args.telegram_whoami)
 

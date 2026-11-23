@@ -2,7 +2,7 @@
 
 > The project is called JARVIS; the assistant you talk to is **FRIDAY**. A personal assistant platform that runs **local-first**: small jobs stay on my own machine, only hard problems go to a frontier model.
 
-**Status:** v3 core works (rules → local model → Claude, with an episode log). Voice, messaging and capability packs come next. The first version was a weekend voice toy; this repo is its successor.
+**Status:** v3 core works (rules → local model → Claude, with an episode log). Local voice (talk and listen), Telegram and a first capability pack work; more packs come next. The first version was a weekend voice toy; this repo is its successor.
 
 ---
 
@@ -72,6 +72,21 @@ The machine running the bot must be on. The bot polls Telegram outbound, so no p
 
 **Daily brief:** while the bot runs it sends the radar brief at `07:30` local time (once a day; if the bot starts late it still sends within 4 hours; "nothing new" is never pushed). Change it with `JARVIS_BRIEF_TIME=08:15` or turn it off with `JARVIS_BRIEF_TIME=off`.
 
+## Voice (talk to it, it talks back)
+
+Everything runs on your machine: microphone → faster-whisper (speech-to-text) → FRIDAY → Kokoro (text-to-speech) → speakers.
+
+```powershell
+uv sync --extra voice
+uv run jarvis --voice-setup   # once: downloads the Kokoro model files (~340 MB) into ~/.jarvis/models
+uv run jarvis --voice         # say "Friday, what time is it?"
+```
+
+- It only answers when a sentence starts with "Friday" (so a TV or a call does not trigger it); for about 12 seconds after an answer, follow-ups need no wake word. `--no-wake` answers everything. Say "stop listening" to quit.
+- Spoken answers are shortened (no code or links read aloud); the full text prints in the terminal.
+- Settings (in `~/.jarvis/.env`): `JARVIS_TTS_VOICE` (default `bm_george`, calm British male; `bf_emma` is British female), `JARVIS_TTS_SPEED`, `JARVIS_STT_MODEL` (default `small`), `JARVIS_STT_LANG` (default `en`; `tr` for Turkish), `JARVIS_MIC_THRESHOLD` (default: measured automatically).
+- The voices are stock Kokoro voices. The project does not clone any real person's voice.
+
 ## Radar (first capability pack)
 
 Tracks topics you care about and prints a short, deduplicated brief.
@@ -118,7 +133,8 @@ Undo by setting the lid action back to `1` (sleep). A closed lid still produces 
 ```
 jarvis/
 ├── jarvis/                   core: config, rules, router, backends, episode log, CLI, Telegram
-│   └── radar/                first pack: topics, feeds, dedupe, ranking, brief
+│   ├── radar/                first pack: topics, feeds, dedupe, ranking, brief
+│   └── voice/                optional: mic capture, speech-to-text, text-to-speech, conversation loop
 ├── scripts/                  install-autostart.ps1
 ├── tests/                    unit tests with fake backends
 ├── evals/                    labelled router cases and the eval runner

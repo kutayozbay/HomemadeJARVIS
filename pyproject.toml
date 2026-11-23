@@ -8,6 +8,14 @@ dependencies = []
 [project.scripts]
 jarvis = "jarvis.cli:main"
 
+[project.optional-dependencies]
+voice = [
+    "faster-whisper>=1.2.1",
+    "kokoro-onnx>=0.6.1",
+    "numpy>=2.5.5",
+    "sounddevice>=0.5.6",
+]
+
 [dependency-groups]
 dev = ["pytest>=8"]
 
