@@ -85,8 +85,19 @@ uv run jarvis --voice         # say "Friday, what time is it?"
 - It only answers when a sentence starts with "Friday" (so a TV or a call does not trigger it); for about 12 seconds after an answer, follow-ups need no wake word. `--no-wake` answers everything. Say "stop listening" to quit.
 - Spoken answers are shortened (no code or links read aloud); the full text prints in the terminal.
 - **Languages:** it understands several. Each sentence is detected among `JARVIS_STT_LANGS` (default `en,tr`, so English with Turkish on demand, no switching needed). The voice is English only: if you speak Turkish, the answer is printed, not spoken, because Kokoro has no Turkish voice.
-- Settings (in `~/.jarvis/.env`): `JARVIS_TTS_VOICE` (default `bm_george+bm_lewis`, a 50/50 blend of two British male voices; a single name like `bf_emma` or a weighted blend like `bm_george*0.7+bm_lewis*0.3` also works), `JARVIS_TTS_SPEED` (default `1.1`), `JARVIS_STT_MODEL` (default `small`), `JARVIS_STT_LANGS`, `JARVIS_MIC_THRESHOLD` (default: measured automatically).
+- Settings (in `~/.jarvis/.env`): `JARVIS_TTS_VOICE` (default `bm_george+bm_lewis`, a 50/50 blend of two British male voices; a single name like `bf_emma` or a weighted blend like `bm_george*0.7+bm_lewis*0.3` also works), `JARVIS_TTS_SPEED` (default `1.1`), `JARVIS_STT_FAST_MODEL` (default `base`, for the main language) and `JARVIS_STT_MODEL` (default `small`, for the other languages; a tiny model detects the language), `JARVIS_STT_LANGS`, `JARVIS_MIC_THRESHOLD` (default: measured automatically).
 - The voices are stock Kokoro voices. The project does not clone any real person's voice.
+
+## Modes: who answers
+
+- **`claude-first` (default):** rules and tools answer instantly; everything else goes to Claude Haiku (`claude-haiku-5-5`) through the Claude Code CLI on your subscription. The local model is only the offline fallback. Use `!strong` (Telegram) or `--strong` (CLI) for the stronger model (`JARVIS_STRONG_MODEL`, default Sonnet).
+- **`router`:** set `JARVIS_MODE=router` to keep everything local unless a small local model judges the request hard (private, free, much less capable). Everything you ask in `claude-first` mode is sent to Anthropic.
+
+## Memory and tools
+
+- **Conversation memory:** the last 6 exchanges are passed to whichever model answers, so follow-ups ("and when was it published?") work. It starts fresh after 30 quiet minutes. It lives in memory only.
+- **Tools** (tier between rules and models): `weather` (Open-Meteo, no account) and a time-zone rule. Nothing about you is configured or stored: "what's the weather" asks the Windows location service where you are right now (kept in memory for 30 minutes, never written to disk), or say "weather in Ankara tomorrow". Only coordinates (or the city you name) are sent to Open-Meteo. Tools never take instructions from model output.
+- **Debugging voice:** `JARVIS_VOICE_DEBUG=1` also prints what was heard but ignored (for example, no wake word).
 
 ## Radar (first capability pack)
 

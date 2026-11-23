@@ -79,7 +79,7 @@ def _voice(cfg: Config, wake: bool) -> int:
         return 2
     print("Loading speech models ...", file=sys.stderr)
     speaker = tts.Speaker(cfg.model_dir, cfg.tts_voice, cfg.tts_speed)
-    transcriber = stt.Transcriber(cfg.stt_model, cfg.stt_languages)
+    transcriber = stt.Transcriber(cfg.stt_model, cfg.stt_languages, cfg.stt_fast_model)
     threshold = cfg.mic_threshold
     if not threshold:
         blocks = audio.mic_blocks()
@@ -97,7 +97,8 @@ def _voice(cfg: Config, wake: bool) -> int:
           f'{hint}; hears {", ".join(cfg.stt_languages)}; say "stop listening" or press Ctrl+C to quit.',
           file=sys.stderr)
     try:
-        loop.VoiceLoop(j, listen, transcriber.transcribe, speaker.speak, wake=wake).run()
+        loop.VoiceLoop(j, listen, transcriber.transcribe, speaker.speak, wake=wake,
+                       verbose=os.environ.get("JARVIS_VOICE_DEBUG") == "1").run()
     except KeyboardInterrupt:
         print()
     finally:
@@ -118,14 +119,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("text", nargs="*", help="what to ask; omit for an interactive loop")
     tier = p.add_mutually_exclusive_group()
     tier.add_argument("--local", action="store_true", help="force the local model")
-    tier.add_argument("--claude", action="store_true", help="force Claude")
+    tier.add_argument("--claude", action="store_true", help="force Claude (the default model)")
+    tier.add_argument("--strong", action="store_true", help="force the stronger Claude model")
     p.add_argument("--telegram", action="store_true", help="run the Telegram bot")
     p.add_argument("--telegram-whoami", action="store_true", help="print your Telegram user id, then exit")
     p.add_argument("--voice", action="store_true", help="talk to FRIDAY with the microphone; answers are spoken")
     p.add_argument("--no-wake", action="store_true", help="with --voice: answer everything, no 'Friday' needed")
     p.add_argument("--voice-setup", action="store_true", help="download the text-to-speech model files (~340 MB)")
     args = p.parse_args(argv)
-    force = "local" if args.local else "claude" if args.claude else None
+    force = "local" if args.local else "claude" if args.claude else "strong" if args.strong else None
 
     load_dotenv()
     if args.voice_setup:

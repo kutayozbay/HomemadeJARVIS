@@ -50,11 +50,17 @@ class Config:
     local_model: str = field(default_factory=lambda: os.environ.get("JARVIS_LOCAL_MODEL", "qwen3:4b-instruct"))
     keep_alive: str = field(default_factory=lambda: os.environ.get("JARVIS_KEEP_ALIVE", "3m"))
     escalate_below: float = field(default_factory=lambda: float(os.environ.get("JARVIS_ESCALATE_BELOW", "0.7")))
-    claude_model: str | None = field(default_factory=lambda: os.environ.get("JARVIS_CLAUDE_MODEL") or None)
+    # "claude-first": everything that is not a rule or a tool goes to Claude (the local model is the offline fallback).
+    # "router": a small local model decides per request (see router.py); cheaper, but much less capable.
+    mode: str = field(default_factory=lambda: os.environ.get("JARVIS_MODE", "claude-first"))
+    claude_model: str | None = field(default_factory=lambda: os.environ.get("JARVIS_CLAUDE_MODEL") or "claude-haiku-5-5")
+    strong_model: str = field(default_factory=lambda: os.environ.get("JARVIS_STRONG_MODEL", "claude-sonnet-5-5"))
     home: Path = field(default_factory=lambda: Path(os.environ.get("JARVIS_HOME", str(Path.home() / ".jarvis"))))
     # Daily radar brief on Telegram, local time "HH:MM". Set JARVIS_BRIEF_TIME=off to disable.
     brief_time: str = field(default_factory=lambda: os.environ.get("JARVIS_BRIEF_TIME", "07:30"))
     # Voice (optional extra). Voices are stock Kokoro voices (bm_* British male, bf_* British female), alone or blended.
+    # The fast model handles the main language (the first in JARVIS_STT_LANGS); the accurate one handles the others.
+    stt_fast_model: str = field(default_factory=lambda: os.environ.get("JARVIS_STT_FAST_MODEL", "base"))
     stt_model: str = field(default_factory=lambda: os.environ.get("JARVIS_STT_MODEL", "small"))
     # Languages it may hear, first = main one. Each utterance is detected among these, so "en,tr" switches by itself.
     stt_languages: tuple[str, ...] = field(default_factory=lambda: tuple(

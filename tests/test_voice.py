@@ -117,7 +117,7 @@ def test_ordinary_words_do_not_wake_it():
 
 
 def test_turkish_speech_gets_a_written_answer_that_is_not_spoken(tmp_path):
-    loop, spoken, shown, _ = make_loop(tmp_path, ["Friday, hava nasıl?"], language="tr")
+    loop, spoken, shown, _ = make_loop(tmp_path, ["Friday, bana bir fıkra anlat"], language="tr")
     loop.step()
     assert spoken == []
     assert any(line.startswith("FRIDAY [local]") for line in shown)
@@ -140,6 +140,13 @@ def test_language_is_picked_among_the_allowed_ones_only():
     assert pick_language([], ("en", "tr")) == "en"
 
 
+def test_fast_model_is_only_for_the_main_language():
+    from jarvis.voice.stt import uses_fast_model
+
+    assert uses_fast_model("en", ("en", "tr")) is True
+    assert uses_fast_model("tr", ("en", "tr")) is False
+
+
 def test_voice_spec_parsing():
     from jarvis.voice.tts import parse_voice
 
@@ -155,6 +162,13 @@ def test_without_the_wake_word_it_stays_silent(tmp_path):
     loop, spoken, shown, _ = make_loop(tmp_path, ["what is the weather like"])
     assert loop.step() is True
     assert spoken == [] and shown == []
+
+
+def test_verbose_mode_shows_what_was_ignored(tmp_path):
+    loop, spoken, shown, _ = make_loop(tmp_path, ["what is the weather like"])
+    loop.verbose = True
+    loop.step()
+    assert spoken == [] and any("ignored, no wake word" in line for line in shown)
 
 
 def test_wake_word_gets_an_answer_and_opens_a_followup_window(tmp_path):

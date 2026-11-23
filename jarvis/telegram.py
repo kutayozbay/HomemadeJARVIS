@@ -21,7 +21,7 @@ MAX_LEN = 4000  # Telegram limit is 4096 characters per message
 HELP = (
     "FRIDAY online.\n"
     "Just write. /time, /date, /stats and /help are instant.\n"
-    "Prefix with !claude or !local to force a model."
+    "Prefix with !strong for the strongest Claude, or !local to force the local model."
 )
 
 
@@ -39,7 +39,7 @@ def chunk(text: str, size: int = MAX_LEN) -> list[str]:
 
 
 def parse_force(text: str) -> tuple[str, str | None]:
-    for prefix, tier in (("!claude ", "claude"), ("!local ", "local")):
+    for prefix, tier in (("!claude ", "claude"), ("!strong ", "strong"), ("!local ", "local")):
         if text.lower().startswith(prefix):
             return text[len(prefix):].strip(), tier
     return text, None

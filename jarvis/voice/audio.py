@@ -15,7 +15,7 @@ def rms(block: np.ndarray) -> float:
 
 
 def segment(blocks: Iterable[np.ndarray], threshold: float, *, block_s: float = BLOCK_S,
-            silence_s: float = 0.9, min_speech_s: float = 0.3, max_s: float = 15.0,
+            silence_s: float = 0.7, min_speech_s: float = 0.3, max_s: float = 15.0,
             preroll_blocks: int = 8) -> np.ndarray | None:
     """Consume blocks until one utterance is complete; return its audio, or None if the stream ends.
 

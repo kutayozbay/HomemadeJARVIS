@@ -25,7 +25,9 @@ class VoiceLoop:
     def __init__(self, jarvis: Jarvis, listen: Callable[[], object | None],
                  transcribe: Callable[[object], tuple[str, str]],
                  speak: Callable[[str], None], *, wake: bool = True, window_s: float = 12.0,
-                 clock: Callable[[], float] = time.monotonic, out: Callable[[str], None] = print):
+                 clock: Callable[[], float] = time.monotonic, out: Callable[[str], None] = print,
+                 verbose: bool = False):
+        self.verbose = verbose  # also show what was heard but ignored (JARVIS_VOICE_DEBUG=1)
         self.jarvis, self.listen, self.transcribe, self.speak = jarvis, listen, transcribe, speak
         self.wake, self.window_s, self.clock, self.out = wake, window_s, clock, out
         self._awake_until = 0.0
@@ -38,10 +40,14 @@ class VoiceLoop:
         heard, language = self.transcribe(audio)
         heard = heard.strip()
         if len(re.sub(r"\W", "", heard)) < 2:  # silence artifacts
+            if self.verbose:
+                self.out(f"(heard nothing usable: {heard!r})")
             return True
         called, rest = strip_wake(heard)
         awake = self.clock() < self._awake_until
         if self.wake and not (called or awake):
+            if self.verbose:
+                self.out(f"(ignored, no wake word) [{language}] {heard}")
             return True  # not for us: stay silent
         if rest.lower().strip(" .!?") in STOP_PHRASES:
             self.out("You: " + heard)

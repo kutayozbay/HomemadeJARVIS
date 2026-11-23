@@ -14,7 +14,8 @@ from .config import Config, find_claude_cli
 
 SYSTEM_PROMPT = (
     "You are FRIDAY, a concise personal assistant. Answer directly and briefly. "
-    "Reply in the same language as the user."
+    "Reply in the same language as the user. "
+    "You have no live data (weather, news, prices) and cannot browse: if asked, say so in one short sentence."
 )
 
 
@@ -75,15 +76,16 @@ class ClaudeCLI:
     def __init__(self, cfg: Config):
         self.cfg = cfg
 
-    def ask(self, prompt: str) -> Reply:
+    def ask(self, prompt: str, model: str | None = None) -> Reply:
         exe = find_claude_cli()
         if not exe:
             raise BackendError("Claude CLI not found. Set JARVIS_CLAUDE_CLI to the claude executable.")
         cmd = [exe, "-p", prompt, "--output-format", "json", "--tools", "",
                "--system-prompt", SYSTEM_PROMPT, "--no-session-persistence",
                "--disable-slash-commands", "--setting-sources", ""]
-        if self.cfg.claude_model:
-            cmd += ["--model", self.cfg.claude_model]
+        chosen = model or self.cfg.claude_model
+        if chosen:
+            cmd += ["--model", chosen]
         env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE_CODE_")}
         try:
             # A neutral working directory keeps project instruction files out of the request.
