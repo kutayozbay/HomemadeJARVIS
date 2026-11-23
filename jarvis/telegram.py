@@ -18,7 +18,7 @@ API = "https://api.telegram.org/bot{token}/{method}"
 MAX_LEN = 4000  # Telegram limit is 4096 characters per message
 
 HELP = (
-    "JARVIS online.\n"
+    "FRIDAY online.\n"
     "Just write. /time, /date, /stats and /help are instant.\n"
     "Prefix with !claude or !local to force a model."
 )

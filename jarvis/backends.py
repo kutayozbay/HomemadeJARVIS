@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from .config import Config, find_claude_cli
 
 SYSTEM_PROMPT = (
-    "You are JARVIS, a concise personal assistant. Answer directly and briefly. "
+    "You are FRIDAY, a concise personal assistant. Answer directly and briefly. "
     "Reply in the same language as the user."
 )
 

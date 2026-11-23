@@ -74,7 +74,7 @@ def test_start_and_instant_commands(setup):
     bot.handle(update("/start"))
     bot.handle(update("/time"))
     out = texts(sent)
-    assert "JARVIS online" in out[0] and ":" in out[1]
+    assert "FRIDAY online" in out[0] and ":" in out[1]
 
 
 def test_force_prefix(setup):

@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.text:
             _ask(j, " ".join(args.text), force)
             return 0
-        print("JARVIS ready. /help for commands, Ctrl+C to quit.", file=sys.stderr)
+        print("FRIDAY ready. /help for commands, Ctrl+C to quit.", file=sys.stderr)
         while True:
             try:
                 line = input("> ").strip()

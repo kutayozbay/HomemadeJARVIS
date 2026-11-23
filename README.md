@@ -1,6 +1,6 @@
-# 🤖 JARVIS
+# 🤖 JARVIS · FRIDAY
 
-> A personal assistant platform that runs **local-first**: small jobs stay on my own machine, only hard problems go to a frontier model.
+> The project is called JARVIS; the assistant you talk to is **FRIDAY**. A personal assistant platform that runs **local-first**: small jobs stay on my own machine, only hard problems go to a frontier model.
 
 **Status:** v3 core works (rules → local model → Claude, with an episode log). Voice, messaging and capability packs come next. The first version was a weekend voice toy; this repo is its successor.
 
